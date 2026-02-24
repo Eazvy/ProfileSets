@@ -5,9 +5,6 @@
 
 <img width="1304" height="1480" alt="oma_plugin-submission-2162  libVencore - Discord_Discord_24_2026_Av5DjdZI000052@2x" src="https://github.com/user-attachments/assets/7b20e9f6-15bb-4d51-97de-63cb0acd5ce3" />
 
-[▶ ProfileSets Demo](https://cdn.discordapp.com/attachments/1173987441590419517/1475984610235125942/oma_plugin-submission-2162_libVencore_-_Discord_Discord_24_2026_cZVCGARG000059-2.mp4?ex=699f7949&is=699e27c9&hm=99f9386f338c3bba817569dceb3e8869a032af0a71a3bb7f360eb5c25d38a499&)
-
-
 Save and load complete Discord profile presets in one click from the Profile Settings page.
 
 Profile Sets stores full profile setups (avatar, banner, bio, pronouns, decorations, colors, and more), with tools to organize presets, import/export backups, and keep separate presets for global and server profiles.
