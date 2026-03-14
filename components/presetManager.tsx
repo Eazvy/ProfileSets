@@ -20,14 +20,7 @@ import { PresetList } from "./presetList";
 
 const PRESETS_PER_PAGE = 5;
 
-const ManaButton = findComponentByCodeLazy('"data-mana-component":"button"') as React.ComponentType<{
-    variant?: "expressive";
-    size?: "sm";
-    text?: string;
-    disabled?: boolean;
-    onClick?: (e: React.MouseEvent) => void;
-    className?: string;
-}>;
+const ManaButton = findComponentByCodeLazy('"data-mana-component":"button"');
 
 type PresetManagerProps = {
     section?: PresetSection;
