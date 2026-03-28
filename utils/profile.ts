@@ -414,7 +414,7 @@ export async function loadPresetAsPending(preset: ProfilePreset, guildId?: strin
 
         if (preset.nameplate !== undefined && !nameplateEq(preset.nameplate, current.nameplate)) {
             setPending({
-                nameplate: preset.nameplate
+                pendingNameplate: preset.nameplate
             });
         }
 
