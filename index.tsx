@@ -23,6 +23,11 @@ export const settings = definePluginSettings({
         default: 56,
         stickToMarkers: true
     },
+    useBasePresetsForServerProfiles: {
+        type: OptionType.BOOLEAN,
+        description: "Show your main saved profiles in server profiles too.",
+        default: false
+    }
 });
 
 export default definePlugin({

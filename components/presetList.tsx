@@ -22,6 +22,7 @@ interface PresetListProps {
     onLoad: (index: number) => void;
     onUpdate: () => void;
     guildId?: string;
+    isGuildProfile: boolean;
     section: PresetSection;
     currentPage: number;
     onPageChange: (page: number) => void;
@@ -35,6 +36,7 @@ export function PresetList({
     onLoad,
     onUpdate,
     guildId,
+    isGuildProfile,
     section,
     currentPage,
     onPageChange
@@ -42,7 +44,6 @@ export function PresetList({
     type EditableProfile = Omit<ProfilePreset, "name" | "timestamp">;
     const [renaming, setRenaming] = React.useState<number>(-1);
     const [renameText, setRenameText] = React.useState("");
-    const isGuildProfile = section === "server";
 
     return (
         <div className={cl("list-container")}>
