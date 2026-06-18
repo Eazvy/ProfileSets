@@ -69,6 +69,8 @@ export function PresetList({
                     onUpdate();
                 };
 
+                const showMoveOptions = actualIndex > 0 || actualIndex < allPresets.length - 1 || currentPage > 1;
+
                 return (
                     <div
                         key={actualIndex}
@@ -161,7 +163,7 @@ export function PresetList({
                                                     onUpdate();
                                                 }}
                                             />
-                                            <Menu.MenuSeparator />
+                                            {showMoveOptions && <Menu.MenuSeparator />}
                                             {actualIndex > 0 && (
                                                 <Menu.MenuItem
                                                     id="move-up"
