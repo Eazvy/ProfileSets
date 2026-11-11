@@ -8,7 +8,8 @@ import { Button } from "@components/Button";
 import { Heading } from "@components/Heading";
 import { CogWheel } from "@components/Icons";
 import { classes } from "@utils/misc";
-import { ContextMenuApi, ContextMenuStore, Menu, openModal, React, SelectedGuildStore, TextInput, useStateFromStores } from "@webpack/common";
+import { ContextMenuApi, Menu, openModal, React, SelectedGuildStore, TextInput, useStateFromStores } from "@webpack/common";
+import { ContextMenuStore } from "@webpack/common/stores";
 
 import { cl, settings } from "../index";
 import { exportPresets, ImportDecision, importPresets, savePreset } from "../utils/actions";

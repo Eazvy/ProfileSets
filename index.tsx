@@ -11,7 +11,6 @@ import { Button } from "@components/Button";
 import ErrorBoundary from "@components/ErrorBoundary";
 import { FormSwitch } from "@components/FormSwitch";
 import { SettingsSection } from "@components/settings/tabs/plugins/components/Common";
-import { EquicordDevs } from "@utils/constants";
 import { classNameFactory } from "@utils/css";
 import { NoopComponent } from "@utils/react";
 import definePlugin, { defineDefault, OptionType } from "@utils/types";
@@ -211,7 +210,7 @@ export const settings = definePluginSettings({
 export default definePlugin({
     name: "ProfileSets",
     description: "Save and apply presets for avatars, banners, bios, pronouns, colors, status emojis, avatar decorations, profile effects and frames, nameplates, and name styles. Includes server profiles, full previews, animated effects, and import/export.",
-    authors: [EquicordDevs.omaw, EquicordDevs.justjxke],
+    authors: [{ name: "omaw", id: 1155026301791514655n }, { name: "justjxke", id: 852558183087472640n }],
     dependencies: ["UserSettingsAPI"],
     settings,
     patches: [
