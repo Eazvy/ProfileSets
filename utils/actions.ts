@@ -5,22 +5,24 @@
  */
 
 import { isNonNullish } from "@utils/guards";
+import { chooseFile, saveFile } from "@utils/web";
 import { ProfilePreset } from "@vencord/discord-types";
-import { findStoreLazy } from "@webpack";
-import { showToast, Toasts } from "@webpack/common";
+import { showToast, UserProfileSettingsStore, UserProfileStore, UserStore } from "@webpack/common";
 
 import { getCurrentProfile } from "./profile";
-import { addPreset, movePresetInArray, presets, PresetSection, type ProfilePresetEx, removePreset, replaceAllPresets, savePresetsData, updatePreset } from "./storage";
-
-const UserProfileSettingsStore = findStoreLazy("UserProfileSettingsStore");
+import { addPreset, ALL_CAPTURE_FIELDS, movePresetInArray, presets, PresetSection, type ProfilePresetEx, removePreset, replaceAllPresets, savePresetsData, updatePreset } from "./storage";
 
 function isImageInput(value: unknown): value is string | { imageUri: string; } {
     if (typeof value === "string") return value.length > 0;
-    return typeof value === "object" && isNonNullish(value) && "imageUri" in value && typeof (value as { imageUri: unknown }).imageUri === "string";
+    return typeof value === "object" && isNonNullish(value) && "imageUri" in value && typeof (value as { imageUri: unknown; }).imageUri === "string";
 }
 
-function getFreshPendingAvatar(isGuildProfile: boolean, guildId?: string): string | null {
-    const pending = (isGuildProfile && guildId
+function isProfileFrame(value: unknown): value is NonNullable<ProfilePresetEx["profileFrame"]> {
+    return typeof value === "object" && value !== null && "skuId" in value && typeof value.skuId === "string";
+}
+
+function getFreshPendingAvatar(section: PresetSection, guildId?: string): string | null {
+    const pending = (section === "server" && guildId
         ? UserProfileSettingsStore.getPendingChanges?.(guildId)
         : UserProfileSettingsStore.getPendingChanges?.()) ?? {};
     const pendingObj = pending as Record<string, unknown>;
@@ -29,25 +31,38 @@ function getFreshPendingAvatar(isGuildProfile: boolean, guildId?: string): strin
     return typeof selected === "string" ? selected : selected.imageUri;
 }
 
-export async function savePreset(
-    name: string,
-    section: PresetSection,
-    guildId?: string,
-    options: { isGuildProfile?: boolean; } = {}
-) {
-    const isGuildProfile = options.isGuildProfile ?? section === "server";
+export async function savePreset(name: string, section: PresetSection, guildId?: string, options?: { isGuildProfile?: boolean; captureFields?: string[]; }) {
+    const isGuildProfile = options?.isGuildProfile ?? section === "server";
+    const captureSet = new Set(options?.captureFields ?? ALL_CAPTURE_FIELDS);
     const profile = await getCurrentProfile(guildId, { isGuildProfile });
-    const freshPendingAvatar = getFreshPendingAvatar(isGuildProfile, guildId);
+    const freshPendingAvatar = getFreshPendingAvatar(isGuildProfile ? "server" : "main", guildId);
     const effectiveAvatar = freshPendingAvatar ?? profile.avatarDataUrl ?? null;
+    const pending = (isGuildProfile && guildId
+        ? UserProfileSettingsStore.getPendingChanges(guildId)
+        : UserProfileSettingsStore.getPendingChanges()) ?? {};
+    const { pendingProfileFrame } = pending as Record<string, unknown>;
+    const currentUserId = UserStore.getCurrentUser().id;
+    const currentProfileWithFrame = (isGuildProfile && guildId
+        ? UserProfileStore.getGuildMemberProfile(currentUserId, guildId)
+        : UserProfileStore.getUserProfile(currentUserId)) as { profileFrame?: ProfilePresetEx["profileFrame"]; } | null | undefined;
+    const profileFrame = pendingProfileFrame === null
+        ? null
+        : (isProfileFrame(pendingProfileFrame) ? pendingProfileFrame : profile.profileFrame ?? currentProfileWithFrame?.profileFrame ?? null);
+
+    const captured = Object.fromEntries(
+        (Object.entries(profile) as Array<[keyof Omit<ProfilePresetEx, "name" | "timestamp">, Omit<ProfilePresetEx, "name" | "timestamp">[keyof Omit<ProfilePresetEx, "name" | "timestamp">]]>)
+            .filter(([key]) => captureSet.has(key))
+    ) as Omit<ProfilePresetEx, "name" | "timestamp">;
 
     const newPreset: ProfilePresetEx = {
         name,
         timestamp: Date.now(),
-        ...profile,
-        avatarDataUrl: effectiveAvatar,
+        ...captured,
+        ...(captureSet.has("avatarDataUrl") ? { avatarDataUrl: effectiveAvatar } : {}),
+        ...(captureSet.has("profileFrame") ? { profileFrame } : {})
     };
     addPreset(newPreset);
-    await savePresetsData(section);
+    await savePresetsData(section, guildId);
 }
 
 export async function updatePresetField<K extends keyof Omit<ProfilePreset, "name" | "timestamp">>(
@@ -66,21 +81,21 @@ export async function updatePresetField<K extends keyof Omit<ProfilePreset, "nam
         timestamp: Date.now()
     };
     updatePreset(index, updatedPreset);
-    await savePresetsData(section);
+    await savePresetsData(section, guildId);
 }
 
 export async function deletePreset(index: number, section: PresetSection, guildId?: string) {
     if (index < 0 || index >= presets.length) return;
 
     removePreset(index);
-    await savePresetsData(section);
+    await savePresetsData(section, guildId);
 }
 
 export async function movePreset(fromIndex: number, toIndex: number, section: PresetSection, guildId?: string) {
     if (fromIndex < 0 || fromIndex >= presets.length || toIndex < 0 || toIndex >= presets.length) return;
 
     movePresetInArray(fromIndex, toIndex);
-    await savePresetsData(section);
+    await savePresetsData(section, guildId);
 }
 
 export async function renamePreset(index: number, newName: string, section: PresetSection, guildId?: string) {
@@ -88,18 +103,11 @@ export async function renamePreset(index: number, newName: string, section: Pres
 
     const updatedPreset = { ...presets[index], name: newName.trim() };
     updatePreset(index, updatedPreset);
-    await savePresetsData(section);
+    await savePresetsData(section, guildId);
 }
 
-export function exportPresets(section: PresetSection) {
-    const dataStr = JSON.stringify(presets, null, 2);
-    const dataBlob = new Blob([dataStr], { type: "application/json" });
-    const url = URL.createObjectURL(dataBlob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `profile-presets-${section}-${Date.now()}.json`;
-    link.click();
-    URL.revokeObjectURL(url);
+export function exportPresets(section: PresetSection, guildId?: string) {
+    saveFile(new File([JSON.stringify(presets, null, 2)], `profile-presets-${section}-${Date.now()}.json`, { type: "application/json" }));
 }
 
 export type ImportDecision = "override" | "merge" | "cancel";
@@ -110,19 +118,13 @@ export async function importPresets(
     section: PresetSection,
     guildId?: string
 ) {
-    const input = document.createElement("input");
-    input.type = "file";
-    input.accept = "application/json";
-    input.onchange = async (event: Event) => {
-        try {
-            const target = event.currentTarget as HTMLInputElement | null;
-            const file = target?.files?.[0];
-            if (!file) return;
-
+    const file = await chooseFile("application/json");
+    if (!file) return;
+    try {
             const text = await file.text();
-            const importedPresets = JSON.parse(text);
+            const importedPresets: unknown = JSON.parse(text);
 
-            if (!Array.isArray(importedPresets)) {
+            if (!Array.isArray(importedPresets) || !importedPresets.every(preset => typeof preset === "object" && preset !== null && typeof preset.name === "string" && typeof preset.timestamp === "number")) {
                 return;
             }
 
@@ -139,11 +141,9 @@ export async function importPresets(
                 replaceAllPresets(importedPresets);
             }
 
-            await savePresetsData(section);
+            await savePresetsData(section, guildId);
             forceUpdate();
         } catch {
-            showToast("Failed to import presets. The file might be invalid.", Toasts.Type.FAILURE);
+            showToast({ text: "Failed to import presets. The file might be invalid.", variant: "critical" });
         }
-    };
-    input.click();
 }
